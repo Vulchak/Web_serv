@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/styles/styles.css">
+    <title>Weather Tracking App</title>
+</head>
+
+<body class="weather-app light-mode">
+    <!-- Header Section -->
+    <header>
+        <h1 class="theme-toggle__text">Weather Data Tracker</h1>
+    </header>
+
+    <!-- Theme Toggle Button -->
+    <!-- Theme Toggle Button -->
+    <button id="themeToggle" class="theme-toggle">
+        <span class="theme-toggle__icon" aria-hidden="true"></span>
+        <span class="theme-toggle__text">Toggle Theme</span>
+    </button>
+
+
+    <!-- Main Content Section -->
+    <div class="mqtt-data">
+        <!-- Check if data is available -->
+        {{#if data}}
+        <!-- Message Box -->
+        <div class="widget message-box">
+            <h2>Message</h2>
+            <p class="message">{{data.message}}</p>
+        </div>
+
+        <!-- Temperature Box -->
+        <div class="widget data-box1">
+            <h2>Temperature</h2>
+            <p class="data-value">{{data.temperature}} °C</p>
+        </div>
+
+        <!-- Humidity Box -->
+        <div class="widget data-box2">
+            <h2>Humidity</h2>
+            <p class="data-value">{{data.humidity}} %</p>
+        </div>
+
+        <!-- Pressure Box -->
+        <div class="widget data-box3">
+            <h2>Pressure</h2>
+            <p class="data-value">{{data.pressure}} Pa</p>
+        </div>
+
+        {{else}}
+        <!-- Display a message if no data available -->
+        <p>No data yet</p>
+        {{/if}}
+    </div>
+
+    <!-- Script to update data in real-time using WebSocket -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const socket = new WebSocket('ws://localhost:5000'); // Update the WebSocket URL if needed
+            const themeToggle = document.getElementById('themeToggle');
+            const body = document.body;
+
+            themeToggle.addEventListener('click', function () {
+                body.classList.toggle('dark-mode');
+                const isDarkMode = body.classList.contains('dark-mode');
+                updateThemeText(isDarkMode);
+                localStorage.setItem('dark-mode', isDarkMode);
+            });
+
+            // Check local storage for the user's theme preference
+            const storedTheme = localStorage.getItem('dark-mode');
+            if (storedTheme !== null) {
+                body.classList.toggle('dark-mode', JSON.parse(storedTheme));
+                updateThemeText(JSON.parse(storedTheme));
+            }
+
+            function updateThemeText(isDarkMode) {
+                const themeText = isDarkMode ? 'Light Mode' : 'Dark Mode';
+                themeToggle.querySelector('.theme-toggle__text').textContent = themeText;
+            }
+
+            // Listen for messages from the server
+            socket.addEventListener('message', (event) => {
+                const data = JSON.parse(event.data);
+                updateData(data);
+            });
+
+            // Update the JavaScript code to use the correct class selectors
+            function updateData(data) {
+                if (data) {
+                    document.querySelector('.message-box .message').textContent = data.message;
+                    document.querySelector('.data-box1 .data-value').textContent = `${data.temperature} °C`;
+                    document.querySelector('.data-box2 .data-value').textContent = `${data.humidity} %`;
+                    document.querySelector('.data-box3 .data-value').textContent = `${data.pressure} Pa`;
+                } else {
+                    // Display a message if no data available
+                    document.querySelector('.mqtt-data').innerHTML = '<p>No data yet</p>';
+                }
+            }
+        });
+
+    </script>
+</body>
+
+</html>
